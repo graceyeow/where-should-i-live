@@ -4,20 +4,35 @@ import { busArrivalHandler } from './bus-arrival';
 import { busStopsHandler } from './bus-stops';
 import { routeHandler } from './route';
 
+// 1. Express Router instance for local / server.ts dev server
 const apiRouter = Router();
 
-// 1. Health check endpoint (/api/health)
 apiRouter.get('/health', healthHandler);
-
-// 2. Next buses at a stop (/api/bus-arrival?BusStopCode=04121&ServiceNo=15)
 apiRouter.get('/bus-arrival', busArrivalHandler);
-
-// 3. Bus Stop information (/api/bus-stops)
 apiRouter.get('/bus-stops', busStopsHandler);
-
-// 4. Routing walk | drive | cycle | pt (/api/route?start=...&end=...&routeType=walk)
 apiRouter.get('/route', routeHandler);
 apiRouter.get('/onemap-route', routeHandler);
 
+// 2. Default export handler for Vercel Serverless Functions when hitting /api directly
+export default function handler(req: any, res: any) {
+  const payload = {
+    service: 'Singapore HDB Affordability & Bus Transport API',
+    status: 'online',
+    endpoints: [
+      { path: '/api/health', method: 'GET', description: 'API health and integration status' },
+      { path: '/api/bus-arrival', method: 'GET', description: 'Next buses arrival from LTA DataMall v3' },
+      { path: '/api/bus-stops', method: 'GET', description: 'Bus stops metadata from LTA DataMall' },
+      { path: '/api/route', method: 'GET', description: 'OneMap public routing service' },
+    ],
+  };
+
+  if (typeof res.json === 'function') {
+    return res.status(200).json(payload);
+  } else {
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
+    return res.end(JSON.stringify(payload));
+  }
+}
+
 export { apiRouter };
-export default apiRouter;
