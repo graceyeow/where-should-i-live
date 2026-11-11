@@ -6,7 +6,9 @@ import { HDB_TOWNS_DATA } from '../data/hdbResaleData';
 import { BUS_STOPS, MRT_LINES, LANDMARK_DESTINATIONS, getSimulatedArrivals } from '../data/singaporeTransitData';
 import { getAffordabilityStatus } from '../utils/affordabilityCalculator';
 import { formatSGD } from '../utils/transitRouter';
-import { Search, Layers, Bus, Train, Filter, Navigation, Info, Building2 } from 'lucide-react';
+import { Search, Layers, Bus, Train, Filter, Navigation, Info, Building2, Map as MapIcon } from 'lucide-react';
+
+export type OneMapStyle = 'Default' | 'Grey' | 'Night' | 'Original';
 
 interface InteractiveMapProps {
   selectedTown: TownData | null;
@@ -27,11 +29,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const townMarkersLayerRef = useRef<L.LayerGroup | null>(null);
   const busStopsLayerRef = useRef<L.LayerGroup | null>(null);
   const landmarksLayerRef = useRef<L.LayerGroup | null>(null);
   const mrtLinesLayerRef = useRef<L.LayerGroup | null>(null);
 
+  const [onemapStyle, setOnemapStyle] = useState<OneMapStyle>('Default');
   const [showBusStops, setShowBusStops] = useState<boolean>(true);
   const [showLandmarks, setShowLandmarks] = useState<boolean>(true);
   const [showMrtLines, setShowMrtLines] = useState<boolean>(true);
@@ -39,7 +43,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeRegion, setActiveRegion] = useState<string>('All');
 
-  // Initialize Leaflet map
+  // Initialize Leaflet map with OneMap API tiles
   useEffect(() => {
     if (!mapContainerRef.current) return;
     if (mapInstanceRef.current) return;
@@ -47,19 +51,27 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     // Center of Singapore
     const map = L.map(mapContainerRef.current, {
       center: [1.3521, 103.8198],
-      zoom: 11.5,
-      minZoom: 10.5,
-      maxZoom: 17,
+      zoom: 12,
+      minZoom: 11,
+      maxZoom: 19,
       zoomControl: false,
     });
 
-    // Clean modern Voyager tiles
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: 'abcd',
-      maxZoom: 19,
-    }).addTo(map);
+    // Official Singapore Land Authority (SLA) OneMap Map Tiles
+    const onemapAttribution =
+      '<img src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png" style="height:16px;width:16px;vertical-align:middle;display:inline-block;margin-right:4px;"/> <a href="https://www.onemap.gov.sg" target="_blank" rel="noopener noreferrer">OneMap</a> &copy; contributors | <a href="https://www.sla.gov.sg" target="_blank" rel="noopener noreferrer">Singapore Land Authority</a>';
+
+    const tileLayer = L.tileLayer(
+      'https://www.onemap.gov.sg/maps/tiles/Default/{z}/{x}/{y}.png',
+      {
+        attribution: onemapAttribution,
+        minZoom: 11,
+        maxZoom: 19,
+        detectRetina: true,
+      }
+    ).addTo(map);
+
+    tileLayerRef.current = tileLayer;
 
     // Zoom control at bottom right
     L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -81,6 +93,15 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       mapInstanceRef.current = null;
     };
   }, []);
+
+  // Dynamically update OneMap tile style (Default, Grey, Night, Original)
+  useEffect(() => {
+    if (tileLayerRef.current) {
+      tileLayerRef.current.setUrl(
+        `https://www.onemap.gov.sg/maps/tiles/${onemapStyle}/{z}/{x}/{y}.png`
+      );
+    }
+  }, [onemapStyle]);
 
   // Render MRT lines
   useEffect(() => {
@@ -505,59 +526,93 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         </div>
       </div>
 
-      {/* Map Layer Toggle Buttons (Top Right) */}
-      <div className="absolute top-3 right-3 z-20 hidden sm:flex flex-col gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-lg border border-slate-200 shadow-sm">
-        <button
-          type="button"
-          onClick={() => setShowLandmarks(!showLandmarks)}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-            showLandmarks
-              ? 'bg-sky-600 text-white font-semibold shadow-xs'
-              : 'text-slate-700 hover:bg-slate-100'
-          }`}
-        >
-          <Building2 className="w-3.5 h-3.5" />
-          <span>Landmarks (SMU...)</span>
-        </button>
+      {/* Map Controls (Top Right) */}
+      <div className="absolute top-3 right-3 z-20 hidden sm:flex flex-col gap-2 max-w-[210px]">
+        {/* OneMap Basemap Style Selector */}
+        <div className="bg-white/95 backdrop-blur-md p-2 rounded-lg border border-slate-200 shadow-sm">
+          <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <img
+                src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png"
+                alt="OneMap"
+                className="w-3.5 h-3.5 inline-block"
+              />
+              <span>OneMap Tiles</span>
+            </span>
+            <span className="text-[9px] text-slate-400 font-mono">SLA API</span>
+          </div>
+          <div className="grid grid-cols-2 gap-1">
+            {(['Default', 'Grey', 'Night', 'Original'] as OneMapStyle[]).map((style) => (
+              <button
+                key={style}
+                type="button"
+                onClick={() => setOnemapStyle(style)}
+                className={`px-2 py-1 text-[11px] font-medium rounded transition-all cursor-pointer ${
+                  onemapStyle === style
+                    ? 'bg-slate-900 text-white font-semibold shadow-xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                {style}
+              </button>
+            ))}
+          </div>
+        </div>
 
-        <button
-          type="button"
-          onClick={() => setShowBusStops(!showBusStops)}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-            showBusStops
-              ? 'bg-slate-900 text-white font-semibold shadow-xs'
-              : 'text-slate-700 hover:bg-slate-100'
-          }`}
-        >
-          <Bus className="w-3.5 h-3.5" />
-          <span>Bus Stops</span>
-        </button>
+        {/* Map Layer Toggle Buttons */}
+        <div className="bg-white/95 backdrop-blur-md p-1.5 rounded-lg border border-slate-200 shadow-sm flex flex-col gap-1.5">
+          <button
+            type="button"
+            onClick={() => setShowLandmarks(!showLandmarks)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+              showLandmarks
+                ? 'bg-sky-600 text-white font-semibold shadow-xs'
+                : 'text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            <Building2 className="w-3.5 h-3.5" />
+            <span>Landmarks (SMU...)</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setShowMrtLines(!showMrtLines)}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-            showMrtLines
-              ? 'bg-slate-900 text-white font-semibold shadow-xs'
-              : 'text-slate-700 hover:bg-slate-100'
-          }`}
-        >
-          <Train className="w-3.5 h-3.5" />
-          <span>MRT Lines</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setShowBusStops(!showBusStops)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+              showBusStops
+                ? 'bg-slate-900 text-white font-semibold shadow-xs'
+                : 'text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            <Bus className="w-3.5 h-3.5" />
+            <span>Bus Stops</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setFilterAffordableOnly(!filterAffordableOnly)}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-            filterAffordableOnly
-              ? 'bg-emerald-600 text-white font-semibold shadow-xs'
-              : 'text-slate-700 hover:bg-slate-100'
-          }`}
-        >
-          <Filter className="w-3.5 h-3.5" />
-          <span>Affordable Only</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setShowMrtLines(!showMrtLines)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+              showMrtLines
+                ? 'bg-slate-900 text-white font-semibold shadow-xs'
+                : 'text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            <Train className="w-3.5 h-3.5" />
+            <span>MRT Lines</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFilterAffordableOnly(!filterAffordableOnly)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+              filterAffordableOnly
+                ? 'bg-emerald-600 text-white font-semibold shadow-xs'
+                : 'text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            <Filter className="w-3.5 h-3.5" />
+            <span>Affordable Only</span>
+          </button>
+        </div>
       </div>
 
       {/* Map Legend (Bottom Left) */}

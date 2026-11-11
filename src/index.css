@@ -35,6 +35,30 @@
   overflow: hidden;
 }
 
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(4px);
+  padding: 3px 8px !important;
+  border-radius: 6px 0 0 0;
+  font-size: 10px !important;
+  color: #475569 !important;
+}
+
+.leaflet-control-attribution a {
+  color: #0284c7 !important;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.leaflet-control-attribution a:hover {
+  text-decoration: underline;
+}
+
+.leaflet-control-attribution img {
+  display: inline-block;
+  vertical-align: middle;
+}
+
 /* Custom smooth scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
