@@ -12,7 +12,16 @@ const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
-  const PORT = parseInt(process.env.PORT || '3000', 10);
+  
+  // Parse CLI args (e.g. --port 3000 --host 0.0.0.0) or fallback to env / 3000
+  const args = process.argv.slice(2);
+  const portArgIdx = args.indexOf('--port');
+  const hostArgIdx = args.indexOf('--host');
+  const cliPort = portArgIdx !== -1 ? args[portArgIdx + 1] : null;
+  const cliHost = hostArgIdx !== -1 ? args[hostArgIdx + 1] : null;
+
+  const PORT = parseInt(cliPort || process.env.PORT || '3000', 10);
+  const HOST = cliHost || process.env.HOST || '0.0.0.0';
   const isProduction = process.env.NODE_ENV === 'production';
 
   app.use(express.json());
@@ -37,8 +46,8 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server listening on http://0.0.0.0:${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`Server listening on http://${HOST}:${PORT}`);
   });
 }
 
