@@ -1,0 +1,6 @@
+{
+  "name": "Where should i live? Singapore HDB affordability",
+  "description": "Interactive Singapore HDB resale price explorer, affordability calculator with CPF grants and MSR rules, and bus transit timing & route planner.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
