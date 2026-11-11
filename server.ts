@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { apiRouter } from './api/index';
+import feedHandler from './api/feed.js';
 
 dotenv.config();
 
@@ -15,6 +16,9 @@ async function startServer() {
   const isProduction = process.env.NODE_ENV === 'production';
 
   app.use(express.json());
+
+  // Mount RSS 2.0 Feed endpoint
+  app.get('/api/feed', feedHandler);
 
   // Mount /api endpoints
   app.use('/api', apiRouter);

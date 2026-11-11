@@ -8,6 +8,7 @@ import { TownDetailDrawer } from './components/TownDetailDrawer';
 import { GrantExplainerModal } from './components/GrantExplainerModal';
 import { AffordabilityInput, TownData, FlatType } from './types/hdb';
 import { HDB_TOWNS_DATA } from './data/hdbResaleData';
+import { DEFAULT_AFFORDABILITY_INPUT } from './data/hdbService';
 import { calculateAffordability, getAffordabilityStatus } from './utils/affordabilityCalculator';
 import { formatSGD } from './utils/transitRouter';
 import {
@@ -30,19 +31,8 @@ export default function App() {
   const [selectedLandmarkId, setSelectedLandmarkId] = useState<string>('smu-bras-basah');
   const [isGrantModalOpen, setIsGrantModalOpen] = useState<boolean>(false);
 
-  // Financial inputs default state (grounded in realistic Singapore family numbers)
-  const [affordabilityInput, setAffordabilityInput] = useState<AffordabilityInput>({
-    householdIncome: 8500,
-    cashSavings: 60000,
-    cpfOaSavings: 80000,
-    applicantType: 'first_timer_family',
-    nearParents: true,
-    loanType: 'hdb',
-    interestRate: 2.6,
-    tenureYears: 25,
-    otherMonthlyDebt: 0,
-    selectedFlatType: '4-Room',
-  });
+  // Financial inputs default state (from shared service module)
+  const [affordabilityInput, setAffordabilityInput] = useState<AffordabilityInput>(DEFAULT_AFFORDABILITY_INPUT);
 
   // Calculate live financial eligibility
   const affordabilityResult = useMemo(() => {
